@@ -50,6 +50,7 @@ public class HeightMap {
      *
      * @param session an edit session
      * @param region the region
+     * @param mask optional mask for the height map
      */
     public HeightMap(EditSession session, Region region, @Nullable Mask mask) {
         checkNotNull(session);
@@ -90,7 +91,7 @@ public class HeightMap {
         System.arraycopy(data, 0, newData, 0, data.length);
 
         for (int i = 0; i < iterations; ++i) {
-            newData = filter.filter(newData, width, height);
+            newData = filter.filter(newData, width, height, 0.5F);
         }
 
         return apply(newData);
@@ -138,7 +139,7 @@ public class HeightMap {
                     BlockState existing = session.getBlock(BlockVector3.at(xr, curHeight, zr));
 
                     // Skip water/lava
-                    if (existing.getBlockType() != BlockTypes.WATER && existing.getBlockType() != BlockTypes.LAVA) {
+                    if (!existing.getBlockType().getMaterial().isLiquid()) {
                         session.setBlock(BlockVector3.at(xr, newHeight, zr), existing);
                         ++blocksChanged;
 

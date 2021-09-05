@@ -36,7 +36,9 @@ import com.sk89q.worldedit.command.tool.brush.HollowSphereBrush;
 import com.sk89q.worldedit.command.tool.brush.ImageHeightmapBrush;
 import com.sk89q.worldedit.command.tool.brush.OperationFactoryBrush;
 import com.sk89q.worldedit.command.tool.brush.SmoothBrush;
+import com.sk89q.worldedit.command.tool.brush.SnowSmoothBrush;
 import com.sk89q.worldedit.command.tool.brush.SphereBrush;
+import com.sk89q.worldedit.command.tool.brush.SplatterBrush;
 import com.sk89q.worldedit.command.util.AsyncCommandBuilder;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
@@ -176,6 +178,37 @@ public class BrushCommands {
     }
 
     @Command(
+        name = "splatter",
+        aliases = { "splat" },
+        desc = "Choose the splatter brush"
+    )
+    @CommandPermissions("worldedit.brush.splatter")
+    public void splatterBrush(Player player, LocalSession session,
+                              @Arg(desc = "The pattern of blocks to set")
+                                  Pattern pattern,
+                              @Arg(desc = "The radius of the splatter", def = "2")
+                                  double radius,
+                              @Arg(desc = "The decay of the splatter between 0 and 10", def = "1")
+                                  int decay) throws WorldEditException {
+        worldEdit.checkMaxBrushRadius(radius);
+
+        if (decay < 0 || decay > 10) {
+            player.printError(TranslatableComponent.of("worldedit.brush.splatter.decay-out-of-range", TextComponent.of(decay)));
+            return;
+        }
+
+        BrushTool tool = session.getBrushTool(player.getItemInHand(HandSide.MAIN_HAND).getType());
+        tool.setFill(pattern);
+        tool.setSize(radius);
+
+        tool.setBrush(new SplatterBrush(decay), "worldedit.brush.splatter");
+
+        player.printInfo(TranslatableComponent.of("worldedit.brush.splatter.equip", TextComponent.of((int) radius), TextComponent.of(decay)));
+        ToolCommands.sendUnbindInstruction(player, UNBIND_COMMAND_COMPONENT);
+    }
+
+
+    @Command(
         name = "clipboard",
         aliases = { "copy" },
         desc = "Choose the clipboard brush"
@@ -235,9 +268,39 @@ public class BrushCommands {
                 "worldedit.brush.smooth.equip",
                 TextComponent.of((int) radius),
                 TextComponent.of(iterations),
-                TextComponent.of(mask == null ? "any block" : "filter")
+                TranslatableComponent.of("worldedit.brush.smooth." + (mask == null ? "no" : "") + "filter")
         ));
         ToolCommands.sendUnbindInstruction(player, UNBIND_COMMAND_COMPONENT);
+    }
+
+    @Command(
+        name = "snowsmooth",
+        desc = "Choose the snow terrain softener brush",
+        descFooter = "Example: '/brush snowsmooth 5 1 -l 3'"
+    )
+    @CommandPermissions("worldedit.brush.snowsmooth")
+    public void snowSmoothBrush(Player player, LocalSession session,
+                                @Arg(desc = "The radius to sample for softening", def = "2")
+                                    double radius,
+                                @Arg(desc = "The number of iterations to perform", def = "4")
+                                    int iterations,
+                                @ArgFlag(name = 'l', desc = "The number of snow blocks under snow", def = "1")
+                                    int snowBlockCount,
+                                @ArgFlag(name = 'm', desc = "The mask of blocks to use for the heightmap")
+                                    Mask mask) throws WorldEditException {
+        worldEdit.checkMaxBrushRadius(radius);
+
+        BrushTool tool = session.getBrushTool(player.getItemInHand(HandSide.MAIN_HAND).getType());
+        tool.setSize(radius);
+        tool.setBrush(new SnowSmoothBrush(iterations, snowBlockCount, mask), "worldedit.brush.snowsmooth");
+
+        player.printInfo(TranslatableComponent.of(
+                "worldedit.brush.snowsmooth.equip",
+                TextComponent.of((int) radius),
+                TextComponent.of(iterations),
+                TranslatableComponent.of("worldedit.brush.snowsmooth." + (mask == null ? "no" : "") + "filter"),
+                TextComponent.of(snowBlockCount)
+        ));
     }
 
     @Command(
